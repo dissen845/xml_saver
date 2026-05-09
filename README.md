@@ -130,4 +130,13 @@ curl -X POST \
 ```bash
 curl -O -J http://localhost:8000/xml/1/
 ```
-ает ошибка `ModuleNotFoundError: No module named 'django'`, сначала установите зависимости через `pipenv install` (или используйте Docker Compose).
+Успешный ответ (`200`):
+
+```XML
+<?xml version="1.0" encoding="UTF-8"?>
+<user>
+    <name>Иван Петров</name>
+    <email>ivan@example.com</email>
+    <age>35</age>
+</user>
+```
