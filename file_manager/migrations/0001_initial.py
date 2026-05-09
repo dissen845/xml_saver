@@ -24,6 +24,7 @@ class Migration(migrations.Migration):
                 ),
                 ("file", models.FileField(upload_to="xml_files/")),
                 ("original_name", models.CharField(max_length=255)),
+                ("size", models.IntegerField()),
                 ("uploaded_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
