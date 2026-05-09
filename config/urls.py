@@ -8,7 +8,3 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('file_manager.urls')),
 ]
-
-# Только в режиме разработки отдаём медиа-файлы напрямую
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
