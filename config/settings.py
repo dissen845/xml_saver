@@ -12,6 +12,38 @@ MEDIA_URL = "/media/"
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
+STORAGE_TYPE = os.environ.get("STORAGE_TYPE", "local")
+if STORAGE_TYPE == "s3":
+    # AWS/совместимые учётные данные
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", None)  # для MinIO
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN", None)  # CDN
+    AWS_S3_USE_SSL = os.environ.get("AWS_S3_USE_SSL", "True").lower() == "true"
+    AWS_S3_VERIFY = os.environ.get("AWS_S3_VERIFY", "True").lower() == "true"
+    AWS_DEFAULT_ACL = "private"                # файлы непубличные
+    AWS_S3_FILE_OVERWRITE = False              # не перезаписывать
+
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 

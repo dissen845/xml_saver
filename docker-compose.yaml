@@ -14,6 +14,19 @@ services:
       POSTGRES_DB: files
     restart: always
 
+  minio:
+    image: minio/minio
+    container_name: minio
+    hostname: minio
+    ports:
+      - "9000:9000"  # API порт (для клиентов S3)
+      - "9001:9001"  # Web UI порт (консоль управления)
+    environment:
+      MINIO_ROOT_USER: minioadmin  # Логин по умолчанию
+      MINIO_ROOT_PASSWORD: minioadmin  # Пароль по умолчанию
+    command: server /data --console-address ":9001"
+    restart: always
+
   file_manager:
     build:
       context: .
@@ -28,9 +41,19 @@ services:
       DEBUG: True
       DJANGO_SECRET_KEY: dummy
       ALLOWED_HOSTS: localhost,127.0.0.1
+      STORAGE_TYPE: s3
+      # POSTGRES
       POSTGRES_DB: files
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_HOST: database
       POSTGRES_PORT: 5432
+      # S3
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_STORAGE_BUCKET_NAME: xml-uploads
+      AWS_S3_REGION_NAME: us-east-1
+      AWS_S3_ENDPOINT_URL: http://minio:9000
+      AWS_S3_USE_SSL: False
+      AWS_S3_VERIFY: False
     restart: always
