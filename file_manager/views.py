@@ -1,6 +1,10 @@
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
+from django.http import FileResponse
+from django.shortcuts import get_object_or_404
+from .models import XMLFile
+
 from .services.xml_service import XMLFileService, XMLFileValidationError
 
 
@@ -43,3 +47,17 @@ def upload_xml(request: HttpRequest) -> JsonResponse:
             {"error": "Внутренняя ошибка сервера", "detail": str(e)},
             status=500
         )
+
+
+def download_xml(_, file_id: int):
+    """
+    Выдаем файл по его id
+    """
+
+    # Достаём объект по ID или возвращаем 404
+    xml_file = get_object_or_404(XMLFile, pk=file_id)
+    # Открываем файл из хранилища (работает с S3 и локальным диском)
+    file = xml_file.file.open('rb')
+    response = FileResponse(file, content_type='application/xml')
+
+    return response

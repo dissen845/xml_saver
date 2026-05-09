@@ -1,5 +1,6 @@
 import xml.etree.ElementTree as ET
 from django.core.files.uploadedfile import UploadedFile
+from django.urls import reverse
 from ..models import XMLFile
 
 
@@ -82,10 +83,15 @@ class XMLFileService:
             dict: Словарь с данными
         """
 
-        return {
+        info = {
             "id": xml_file.id,
             "original_name": xml_file.original_name,
-            "url": xml_file.file.url if xml_file.file else None,
             "uploaded_at": xml_file.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
             "size": xml_file.file.size if xml_file.file else None,
         }
+
+        info["url"] = reverse(
+            "download_xml",
+            kwargs={"file_id": xml_file.id},
+        )
+        return info
