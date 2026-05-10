@@ -1,11 +1,19 @@
 import tempfile
+from unittest.mock import Mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from file_manager.models import XMLFile
-from file_manager.services.xml_service import XMLFileService, XMLFileValidationError
+from file_manager.services.xml_service import (
+    XMLFileInfoBuilder,
+    XMLFileRepository,
+    XMLFileService,
+    XMLFileValidationError,
+    XMLUploadProcessor,
+    XMLValidator,
+)
 
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
@@ -86,18 +94,6 @@ class DownloadXMLViewTest(TestCase):
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
 class XMLFileServiceTest(TestCase):
-    def test_validate_xml_file_resets_pointer_after_read(self):
-        uploaded = SimpleUploadedFile(
-            "pointer.xml",
-            b"<root><child/></root>",
-            content_type="application/xml",
-        )
-
-        XMLFileService._validate_xml_file(uploaded)
-
-        self.assertEqual(uploaded.tell(), 0)
-        self.assertEqual(uploaded.read(), b"<root><child/></root>")
-
     def test_process_xml_upload_creates_xml_file_object(self):
         uploaded = SimpleUploadedFile(
             "saved.xml",
@@ -126,7 +122,37 @@ class XMLFileServiceTest(TestCase):
         self.assertEqual(info["size"], xml_file.file.size)
         self.assertEqual(info["url"], reverse("download_xml", kwargs={"file_id": xml_file.id}))
 
-    def test_validate_xml_file_raises_for_invalid_xml(self):
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class XMLComponentsTest(TestCase):
+    def setUp(self):
+        self.validator = XMLValidator()
+        self.repository = XMLFileRepository()
+        self.info_builder = XMLFileInfoBuilder()
+
+    def test_default_validator_resets_pointer_after_success(self):
+        uploaded = SimpleUploadedFile(
+            "valid_component.xml",
+            b"<root><child/></root>",
+            content_type="application/xml",
+        )
+
+        self.validator.validate(uploaded)
+
+        self.assertEqual(uploaded.tell(), 0)
+        self.assertEqual(uploaded.read(), b"<root><child/></root>")
+
+    def test_default_validator_raises_for_wrong_extension(self):
+        uploaded = SimpleUploadedFile(
+            "not_xml.txt",
+            b"<root><child/></root>",
+            content_type="text/plain",
+        )
+
+        with self.assertRaisesMessage(XMLFileValidationError, "Файл должен быть расширения .xml"):
+            self.validator.validate(uploaded)
+
+    def test_default_validator_raises_for_invalid_xml(self):
         uploaded = SimpleUploadedFile(
             "bad.xml",
             b"<root><bad></root>",
@@ -134,4 +160,70 @@ class XMLFileServiceTest(TestCase):
         )
 
         with self.assertRaises(XMLFileValidationError):
-            XMLFileService._validate_xml_file(uploaded)
+            self.validator.validate(uploaded)
+
+    def test_django_repository_saves_xmlfile_model(self):
+        payload = b"<root><saved/></root>"
+        uploaded = SimpleUploadedFile("repo.xml", payload, content_type="application/xml")
+
+        xml_file = self.repository.save(uploaded)
+
+        self.assertTrue(XMLFile.objects.filter(pk=xml_file.pk).exists())
+        self.assertEqual(xml_file.original_name, "repo.xml")
+        self.assertEqual(xml_file.size, len(payload))
+
+    def test_info_builder_returns_expected_payload(self):
+        uploaded = SimpleUploadedFile(
+            "builder.xml",
+            b"<root><item>1</item></root>",
+            content_type="application/xml",
+        )
+        xml_file = XMLFileService.process_xml_upload(uploaded)
+
+        info = self.info_builder.build(xml_file)
+
+        self.assertEqual(info["id"], xml_file.id)
+        self.assertEqual(info["original_name"], "builder.xml")
+        self.assertEqual(info["size"], xml_file.file.size)
+        self.assertEqual(info["url"], reverse("download_xml", kwargs={"file_id": xml_file.id}))
+
+
+class XMLUploadProcessorTest(TestCase):
+    def test_process_upload_calls_validator_then_repository(self):
+        validator = Mock()
+        repository = Mock()
+        info_builder = Mock()
+        uploaded = Mock()
+        saved_xml = object()
+        repository.save.return_value = saved_xml
+
+        processor = XMLUploadProcessor(
+            validator=validator,
+            repository=repository,
+            info_builder=info_builder,
+        )
+
+        result = processor.process_upload(uploaded)
+
+        validator.validate.assert_called_once_with(uploaded)
+        repository.save.assert_called_once_with(uploaded)
+        self.assertIs(result, saved_xml)
+
+    def test_build_file_info_delegates_to_info_builder(self):
+        validator = Mock()
+        repository = Mock()
+        info_builder = Mock()
+        xml_file = Mock()
+        expected_info = {"id": 123}
+        info_builder.build.return_value = expected_info
+
+        processor = XMLUploadProcessor(
+            validator=validator,
+            repository=repository,
+            info_builder=info_builder,
+        )
+
+        result = processor.build_file_info(xml_file)
+
+        info_builder.build.assert_called_once_with(xml_file)
+        self.assertEqual(result, expected_info)
