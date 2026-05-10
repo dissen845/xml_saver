@@ -24,7 +24,7 @@ class XMLFileService:
 
         # Проверка расширения
         if not uploaded_file.name.lower().endswith(".xml"):
-            raise XMLFileValidationError("File must have .xml extension")
+            raise XMLFileValidationError("Файл должен быть расширения .xml")
         # Проверка содержимого
         try:
             xml_content = uploaded_file.read()

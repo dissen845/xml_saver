@@ -36,7 +36,7 @@ class UploadXMLViewTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertJSONEqual(response.content, {"error": "File must have .xml extension"})
+        self.assertJSONEqual(response.content, {"error": "Файл должен быть расширения .xml"})
 
     def test_upload_xml_returns_400_for_invalid_xml(self):
         broken_xml = SimpleUploadedFile(
