@@ -1,4 +1,5 @@
 from django.http import HttpRequest, JsonResponse
+from django.core.files.uploadedfile import UploadedFile
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.http import FileResponse
@@ -31,7 +32,7 @@ def upload_xml(request: HttpRequest) -> JsonResponse:
     if "file" not in request.FILES:
         return JsonResponse(status=400, data={"error": "Не передан файл"})
 
-    uploaded_file = request.FILES["file"]
+    uploaded_file: UploadedFile = request.FILES["file"]
 
     try:
         xml_file = XMLFileService.process_xml_upload(uploaded_file)
