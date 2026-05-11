@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-
 from django.core.files.uploadedfile import UploadedFile
 
 from ..models import XMLFile
@@ -11,6 +10,7 @@ class FileValidator(ABC):
     @abstractmethod
     def validate(self, uploaded_file: UploadedFile) -> None:
         """Проверяет корректность загруженного файла по правилам домена."""
+        pass
 
 
 class FileRepository(ABC):
@@ -19,6 +19,7 @@ class FileRepository(ABC):
     @abstractmethod
     def save(self, uploaded_file: UploadedFile) -> XMLFile:
         """Сохраняет файл и возвращает связанный ORM-объект."""
+        pass
 
 
 class FileInfoBuilder(ABC):
@@ -27,3 +28,4 @@ class FileInfoBuilder(ABC):
     @abstractmethod
     def build(self, file_record: XMLFile) -> dict:
         """Формирует словарь с данными о файле."""
+        pass
